@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="A peer-assessment game on muscle contraction and sarcomere structure.">
+  <title>Sarcomere Stop-Motion Challenge</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121a3a'/%3E%3Cpath d='M10 12v40M54 12v40' stroke='%23ffc53d' stroke-width='5'/%3E%3Cpath d='M10 22h22M10 42h22M54 22H32M54 42H32' stroke='%23ff6b6b' stroke-width='4'/%3E%3Cpath d='M18 32h28' stroke='%2337d6c4' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- ============ HUD ============ -->
+  <header id="hud" class="hud" hidden>
+    <div class="hud-left">
+      <button class="icon-btn" id="btn-home" aria-label="Quit to title" title="Quit to title">⌂</button>
+      <div class="hud-round" id="hud-round">Round 1</div>
+      <div class="hud-count" id="hud-count" aria-hidden="true"></div>
+    </div>
+    <div class="hud-progress" aria-label="Game progress">
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <ol class="progress-steps" id="progress-steps">
+        <li data-step="r1">Sort</li><li data-step="r2">Build</li><li data-step="r3">Missing?</li><li data-step="qf">Quiz</li><li data-step="results">🏁</li>
+      </ol>
+    </div>
+    <div class="hud-right">
+      <div class="streak" id="hud-streak" title="Streak"><span class="flame">🔥</span><span id="streak-n">0</span></div>
+      <div class="score" aria-live="polite"><span id="score-n">0</span><small>pts</small></div>
+      <button class="pill-btn" id="btn-partner" aria-pressed="false" aria-label="Partner Mode">👥 <span class="lbl">Partner</span></button>
+    </div>
+  </header>
+
+  <!-- ============ Partner Mode panel ============ -->
+  <aside id="partner-panel" class="partner-panel" aria-hidden="true">
+    <div class="partner-head">
+      <h2>👥 Partner Mode</h2>
+      <button class="icon-btn" id="partner-close" aria-label="Close partner panel">✕</button>
+    </div>
+    <p class="partner-intro">Examiner: ask the player to <b>explain out loud</b> as they play. Tick each point they cover (+25 each).</p>
+    <ul id="partner-list" class="partner-list"></ul>
+    <div class="partner-score">Explanation points: <b id="partner-pts">0</b></div>
+  </aside>
+
+  <main id="app">
+    <!-- ============ TITLE ============ -->
+    <section class="screen" id="screen-title">
+      <div class="title-wrap">
+        <div class="logo-anim" aria-hidden="true">
+          <svg viewBox="-260 -90 520 180" id="logo-svg"></svg>
+        </div>
+        <h1 class="game-title"><span>Sarcomere</span> <em>Stop-Motion</em> Challenge</h1>
+        <p class="tagline">Sort the signal. Build the sarcomere. Slide the filaments. Prove it.</p>
+
+        <form id="start-form" class="start-card" autocomplete="off">
+          <label for="player-name">Player name</label>
+          <input id="player-name" maxlength="24" placeholder="e.g. Sam" required>
+          <label class="toggle"><input type="checkbox" id="opt-timer"> <span>Timed quick-fire round</span></label>
+          <button type="submit" class="big-btn primary">▶ Start challenge</button>
+        </form>
+
+        <div class="title-actions">
+          <button class="pill-btn" id="btn-howto">❓ How to play</button>
+          <button class="pill-btn" id="btn-examiner">🔑 Examiner view</button>
+        </div>
+
+        <div class="leaderboard-card">
+          <h2>🏅 Station leaderboard</h2>
+          <ol id="leaderboard" class="leaderboard"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ROUND 1 ============ -->
+    <section class="screen" id="screen-r1" hidden>
+      <div class="round-intro">
+        <h2><span class="round-badge">1</span> Sequence Sort</h2>
+        <p>Drag each card into the right step, from nerve signal to relaxation. <span class="muted">On a tablet you can also tap a card, then tap a slot.</span></p>
+        <div class="round-tools">
+          <button class="pill-btn" id="r1-hint">💡 Hint <small>(−50)</small></button>
+          <button class="pill-btn ghost" id="r1-skip">Skip round</button>
+        </div>
+      </div>
+      <div class="r1-board">
+        <ol class="r1-slots" id="r1-slots"></ol>
+        <div class="r1-tray-wrap">
+          <h3>Shuffled cards <span class="muted" id="r1-left"></span></h3>
+          <div class="r1-tray" id="r1-tray"></div>
+        </div>
+      </div>
+      <div class="round-done" id="r1-done" hidden>
+        <p id="r1-done-msg"></p>
+        <button class="big-btn primary" id="r1-next">Next: Build the Sarcomere ▶</button>
+      </div>
+    </section>
+
+    <!-- ============ ROUND 2 ============ -->
+    <section class="screen" id="screen-r2" hidden>
+      <div class="round-intro">
+        <h2><span class="round-badge">2</span> Build the Sarcomere</h2>
+        <p id="r2-instructions">Drag the pieces onto the glowing sockets to build a <b>RELAXED</b> sarcomere. Careful: not every piece belongs!</p>
+        <div class="round-tools">
+          <button class="pill-btn" id="r2-reset">↺ Reset pieces</button>
+          <button class="pill-btn ghost" id="r2-skip">Skip round</button>
+        </div>
+      </div>
+      <div class="stage-card">
+        <svg id="r2-svg" class="stage-svg" viewBox="0 0 1000 760" role="img" aria-label="Sarcomere building area"></svg>
+        <div class="label-tray" id="r2-labels" hidden></div>
+      </div>
+      <div class="feedback-list" id="r2-feedback" aria-live="polite"></div>
+      <div class="round-controls">
+        <button class="big-btn primary" id="r2-check">✔ Check build</button>
+        <button class="big-btn primary" id="r2-next" hidden>Next: What's Missing? ▶</button>
+      </div>
+    </section>
+
+    <!-- ============ ROUND 3 ============ -->
+    <section class="screen" id="screen-r3" hidden>
+      <div class="round-intro">
+        <h2><span class="round-badge">3</span> What's Missing?</h2>
+        <p>Each scenario removes one ingredient of muscle contraction. <b>Tap</b> which step fails, then what the muscle does.</p>
+        <div class="round-tools">
+          <button class="pill-btn" id="wm-hint" disabled>💡 Hint <small>(−15)</small></button>
+          <button class="pill-btn" id="wm-restart">↺ Restart</button>
+          <button class="pill-btn ghost" id="wm-skip">Skip round</button>
+        </div>
+      </div>
+      <div class="wm-layout" id="wm-game">
+        <div class="wm-card" id="wm-card">
+          <div class="wm-top">
+            <span class="wm-count" id="wm-count"></span>
+            <ol class="wm-dots" id="wm-dots" aria-hidden="true"></ol>
+          </div>
+          <div class="wm-scenario">
+            <span class="wm-icon" id="wm-icon" aria-hidden="true"></span>
+            <div><span class="wm-label">What's missing:</span><h3 id="wm-missing"></h3></div>
+          </div>
+          <div class="wm-q" id="wm-a">
+            <h4><span class="wm-part">a</span> Which step of the contraction sequence fails?</h4>
+            <div class="wm-options" id="wm-options-a"></div>
+            <div class="wm-feedback" id="wm-feedback-a" aria-live="polite" hidden></div>
+          </div>
+          <div class="wm-q" id="wm-b" hidden>
+            <h4><span class="wm-part">b</span> What does the muscle do as a result?</h4>
+            <div class="wm-options effects" id="wm-options-b"></div>
+            <div class="wm-feedback" id="wm-feedback-b" aria-live="polite" hidden></div>
+          </div>
+          <div class="round-controls"><button class="big-btn primary" id="wm-next" hidden>Next scenario ▶</button></div>
+        </div>
+        <aside class="wm-side">
+          <h3>Contraction sequence <span class="muted">(Round 1)</span></h3>
+          <ol class="wm-seq" id="wm-seq"></ol>
+        </aside>
+      </div>
+      <div class="round-done" id="wm-done" hidden>
+        <div id="wm-summary"></div>
+        <button class="big-btn primary" id="wm-finish">Next: Quick-fire ▶</button>
+      </div>
+    </section>
+
+    <!-- ============ QUICK-FIRE ============ -->
+    <section class="screen" id="screen-qf" hidden>
+      <div class="qf-wrap">
+        <div class="qf-top">
+          <span class="qf-count" id="qf-count"></span>
+          <span class="qf-topic" id="qf-topic"></span>
+        </div>
+        <div class="timer-track" id="qf-timer-track" hidden><div class="timer-fill" id="qf-timer"></div></div>
+        <h2 class="qf-question" id="qf-question"></h2>
+        <div class="qf-options" id="qf-options"></div>
+        <div class="qf-explain" id="qf-explain" hidden aria-live="polite"></div>
+        <button class="big-btn primary" id="qf-next" hidden>Next ▶</button>
+      </div>
+    </section>
+
+    <!-- ============ RESULTS ============ -->
+    <section class="screen" id="screen-results" hidden>
+      <canvas id="confetti" aria-hidden="true"></canvas>
+      <div class="results-card">
+        <div class="rating-emoji" id="res-emoji"></div>
+        <p class="res-player" id="res-player"></p>
+        <h2 class="rating-title" id="res-title"></h2>
+        <p class="rating-blurb" id="res-blurb"></p>
+        <div class="res-total"><span id="res-total">0</span> pts <small id="res-pct"></small></div>
+        <table class="res-table" id="res-table"></table>
+        <div class="res-stats" id="res-stats"></div>
+        <div class="round-controls">
+          <button class="big-btn primary" id="res-again">🔄 Swap players</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EXAMINER VIEW ============ -->
+    <section class="screen" id="screen-examiner" hidden>
+      <div class="examiner">
+        <div class="examiner-head">
+          <h1>🔑 Examiner view · Answer key</h1>
+          <div>
+            <button class="pill-btn" id="ex-print">🖨 Print</button>
+            <button class="pill-btn" id="ex-back">← Back</button>
+          </div>
+        </div>
+        <div id="examiner-body"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ How-to dialog ============ -->
+  <dialog id="howto" class="howto">
+    <h2>How to play</h2>
+    <ol>
+      <li><b>Round 1 · Sequence Sort:</b> drag the 12 steps of contraction into order. Right cards snap and glow, wrong ones shake. Hints cost 50 points.</li>
+      <li><b>Round 2 · Build:</b> assemble a <em>relaxed</em> sarcomere from the pieces (watch out for decoys), check it, then label the A band, I band, H zone and M line.</li>
+      <li><b>Round 3 · What's Missing?</b> each scenario removes one ingredient (like ATP or Ca²⁺). Tap which step fails, then what the muscle does. Wrong answers get a nudge, and after 2 wrong tries you can buy a hint.</li>
+      <li><b>Quick-fire:</b> fast multiple-choice questions with explanations.</li>
+    </ol>
+    <p>🔥 Streaks of 3+ correct answers earn bonus points. 👥 <b>Partner Mode</b> gives the examiner a checklist of things the player should explain out loud.</p>
+    <form method="dialog"><button class="big-btn primary">Got it</button></form>
+  </dialog>
+
+  <div id="toast-zone" class="toast-zone" aria-live="assertive"></div>
+
+  <!-- Content first (editable), then engine -->
+  <script src="js/content.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/drag.js"></script>
+  <script src="js/sarc-svg.js"></script>
+  <script src="js/round1.js"></script>
+  <script src="js/round2.js"></script>
+  <script src="js/round3.js"></script>
+  <script src="js/quickfire.js"></script>
+  <script src="js/teacher.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
